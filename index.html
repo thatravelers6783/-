@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>クラウド画像保存サイト</title>
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f4f7f6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .upload-container {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 450px;
+      text-align: center;
+    }
+
+    h2 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 1.5rem;
+    }
+
+    .file-input-wrapper {
+      margin-bottom: 20px;
+    }
+
+    input[type="file"] {
+      width: 100%;
+      padding: 10px;
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      background-color: #fafafa;
+      cursor: pointer;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #statusMessage {
+      margin-top: 15px;
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    .preview-area {
+      margin-top: 30px;
+      border-top: 1px solid #eee;
+      padding-top: 20px;
+    }
+
+    .preview-area h3 {
+      font-size: 1rem;
+      color: #555;
+      margin-bottom: 15px;
+    }
+
+    #uploadedImage {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="upload-container">
+    <h2>画像をクラウドに保存</h2>
+    
+    <div class="file-input-wrapper">
+      <input type="file" id="imageInput" accept="image/*">
+    </div>
+
+    <button id="uploadBtn">クラウドに保存する</button>
+
+    <p id="statusMessage"></p>
+
+    <div class="preview-area">
+      <h3>アップロード済み画像</h3>
+      <img id="uploadedImage" src="" alt="プレビュー" style="display:none;">
+    </div>
+  </div>
+
+  <!-- Firebase JavaScript（新しいキーを適用済み） -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+
+    // 新しく取得された設定情報
+    const firebaseConfig = {
+      apiKey: "AIzaSyAMLSWsVAtd0WHzw8xcCE3Lrmui4dCaYPQ",
+      authDomain: "gazouhozon-8ffd1.firebaseapp.com",
+      projectId: "gazouhozon-8ffd1",
+      storageBucket: "gazouhozon-8ffd1.firebasestorage.app",
+      messagingSenderId: "906533676912",
+      appId: "1:906533676912:web:679a9f6bc94686a9cb91b5",
+      measurementId: "G-J25SL6L8VY"
+    };
+
+    // Firebaseの初期化
+    const app = initializeApp(firebaseConfig);
+    const storage = getStorage(app);
+
+    // DOM要素
+    const imageInput = document.getElementById('imageInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const statusMessage = document.getElementById('statusMessage');
+    const uploadedImage = document.getElementById('uploadedImage');
+
+    // アップロード処理
+    uploadBtn.addEventListener('click', () => {
+      const file = imageInput.files[0];
+      if (!file) {
+        alert("画像を選択してください");
+        return;
+      }
+
+      statusMessage.textContent = "アップロード中...";
+      
+      const storageRef = ref(storage, 'images/' + Date.now() + '_' + file.name);
+
+      uploadBytes(storageRef, file).then((snapshot) => {
+        statusMessage.textContent = "保存が完了しました！";
+        return getDownloadURL(snapshot.ref);
+      }).then((downloadURL) => {
+        uploadedImage.src = downloadURL;
+        uploadedImage.style.display = 'block';
+      }).catch((error) => {
+        console.error(error);
+        statusMessage.textContent = "エラーが発生しました。Storageのルールを確認してください。";
+      });
+    });
+  </script>
+
+</body>
+</html>
