@@ -28,7 +28,7 @@
       border-radius: 12px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       width: 100%;
-      max-width: 450px;
+      max-width: 600px;
       text-align: center;
     }
 
@@ -74,21 +74,32 @@
       color: #666;
     }
 
-    .preview-area {
+    .gallery-area {
       margin-top: 30px;
       border-top: 1px solid #eee;
       padding-top: 20px;
     }
 
-    .preview-area h3 {
+    .gallery-area h3 {
       font-size: 1rem;
       color: #555;
       margin-bottom: 15px;
     }
 
-    #uploadedImage {
-      max-width: 100%;
-      height: auto;
+    /* 画像一覧をグリッド状（並べて）表示するスタイル */
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+      margin-top: 15px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .image-grid img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
       border-radius: 8px;
       border: 1px solid #ddd;
     }
@@ -107,18 +118,18 @@
 
     <p id="statusMessage"></p>
 
-    <div class="preview-area">
-      <h3>アップロード済み画像</h3>
-      <img id="uploadedImage" src="" alt="プレビュー" style="display:none;">
+    <!-- 保存された画像の一覧表示エリア -->
+    <div class="gallery-area">
+      <h3>保存済み画像一覧</h3>
+      <div id="imageGrid" class="image-grid"></div>
     </div>
   </div>
 
-  <!-- Firebase JavaScript（新しいキーを適用済み） -->
+  <!-- Firebase JavaScript -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL, listAll } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
-    // 新しく取得された設定情報
     const firebaseConfig = {
       apiKey: "AIzaSyAMLSWsVAtd0WHzw8xcCE3Lrmui4dCaYPQ",
       authDomain: "gazouhozon-8ffd1.firebaseapp.com",
@@ -137,7 +148,35 @@
     const imageInput = document.getElementById('imageInput');
     const uploadBtn = document.getElementById('uploadBtn');
     const statusMessage = document.getElementById('statusMessage');
-    const uploadedImage = document.getElementById('uploadedImage');
+    const imageGrid = document.getElementById('imageGrid');
+
+    // 保存されている画像の一覧を取得して表示する関数
+    async function loadImages() {
+      imageGrid.innerHTML = ""; // 一旦リセット
+      const listRef = ref(storage, 'images/');
+      
+      try {
+        const res = await listAll(listRef);
+        if (res.items.length === 0) {
+          imageGrid.innerHTML = "<p style='color:#888; font-size:0.85rem;'>まだ画像はありません</p>";
+          return;
+        }
+
+        // 各ファイルのダウンロードURLを取得してimgタグを作成
+        for (const itemRef of res.items) {
+          const url = await getDownloadURL(itemRef);
+          const img = document.createElement('img');
+          img.src = url;
+          img.alt = "アップロード画像";
+          imageGrid.appendChild(img);
+        }
+      } catch (error) {
+        console.error("画像一覧の取得に失敗しました:", error);
+      }
+    }
+
+    // ページ読み込み時に画像一覧を表示
+    loadImages();
 
     // アップロード処理
     uploadBtn.addEventListener('click', () => {
@@ -151,12 +190,10 @@
       
       const storageRef = ref(storage, 'images/' + Date.now() + '_' + file.name);
 
-      uploadBytes(storageRef, file).then((snapshot) => {
+      uploadBytes(storageRef, file).then(() => {
         statusMessage.textContent = "保存が完了しました！";
-        return getDownloadURL(snapshot.ref);
-      }).then((downloadURL) => {
-        uploadedImage.src = downloadURL;
-        uploadedImage.style.display = 'block';
+        imageInput.value = ""; // 入力欄をクリア
+        loadImages(); // 画像一覧を再読み込み
       }).catch((error) => {
         console.error(error);
         statusMessage.textContent = "エラーが発生しました。Storageのルールを確認してください。";
